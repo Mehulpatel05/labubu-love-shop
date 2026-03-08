@@ -3,7 +3,7 @@ import { CheckCircle } from "lucide-react";
 
 export default function OrderConfirmation() {
   const location = useLocation();
-  const state = location.state as { customer: any; items: any[]; totalPrice: number } | null;
+  const state = location.state as { customer: any; items: any[]; totalPrice: number; orderNumber?: string } | null;
 
   if (!state) return <Navigate to="/" replace />;
 
@@ -14,6 +14,11 @@ export default function OrderConfirmation() {
           <CheckCircle className="h-16 w-16 text-primary animate-bounce-cute" />
         </div>
         <h1 className="font-display text-2xl font-extrabold text-foreground">Thank you for your order!</h1>
+        {state.orderNumber && (
+          <p className="text-sm font-bold text-primary bg-primary/10 inline-block px-4 py-2 rounded-full">
+            Order: {state.orderNumber}
+          </p>
+        )}
         <p className="text-muted-foreground">Your Labubu case will be delivered soon. 🧸</p>
 
         <div className="bg-muted/50 rounded-xl p-5 text-left space-y-4">
@@ -44,12 +49,20 @@ export default function OrderConfirmation() {
           <p className="text-sm font-bold text-foreground">Payment: Cash on Delivery</p>
         </div>
 
-        <Link
-          to="/"
-          className="inline-flex px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:scale-105 transition-all"
-        >
-          Continue Shopping
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            to="/orders"
+            className="inline-flex px-8 py-3 rounded-full border-2 border-primary text-primary font-bold hover:scale-105 transition-all"
+          >
+            Track Order
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:scale-105 transition-all"
+          >
+            Continue Shopping
+          </Link>
+        </div>
       </div>
     </section>
   );
