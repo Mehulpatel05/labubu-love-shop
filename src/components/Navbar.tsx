@@ -9,8 +9,14 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await signOut();
-    navigate("/");
+    console.log("Logout clicked, user:", user?.email);
+    try {
+      await signOut();
+      console.log("Sign out successful");
+      navigate("/");
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
   };
 
   return (
