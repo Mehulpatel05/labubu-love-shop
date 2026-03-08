@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          created_at: string
+          customer_address: string
+          customer_city: string
+          customer_name: string
+          customer_phone: string
+          customer_pincode: string
+          customer_state: string
+          id: string
+          items: Json
+          order_number: string
+          status: Database["public"]["Enums"]["order_status"]
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_address: string
+          customer_city: string
+          customer_name: string
+          customer_phone: string
+          customer_pincode: string
+          customer_state: string
+          id?: string
+          items: Json
+          order_number?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_address?: string
+          customer_city?: string
+          customer_name?: string
+          customer_phone?: string
+          customer_pincode?: string
+          customer_state?: string
+          id?: string
+          items?: Json
+          order_number?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +70,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      order_status:
+        | "confirmed"
+        | "processing"
+        | "shipped"
+        | "out_for_delivery"
+        | "delivered"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +202,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      order_status: [
+        "confirmed",
+        "processing",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+      ],
+    },
   },
 } as const
