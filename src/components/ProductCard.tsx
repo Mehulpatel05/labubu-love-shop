@@ -15,13 +15,13 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="p-4 sm:p-5 space-y-2 sm:space-y-3">
         <h3 className="font-display text-base sm:text-lg font-bold text-foreground leading-tight">{product.name}</h3>
         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.shortDescription}</p>
-        <div className="flex items-center justify-between pt-1 gap-2">
-          <span className="text-lg sm:text-xl font-extrabold text-primary">₹{product.price}</span>
+        <div className="flex items-center justify-between pt-1 gap-1">
+          <span className="text-base sm:text-lg font-extrabold text-primary">₹{product.price}</span>
           <Link
             to={`/product/${product.id}`}
-            className="px-3 sm:px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs sm:text-sm font-bold hover:scale-105 active:scale-95 transition-transform whitespace-nowrap"
+            className="px-2.5 py-1.5 rounded-full bg-primary text-primary-foreground text-[10px] sm:text-xs font-bold hover:scale-105 active:scale-95 transition-transform whitespace-nowrap"
           >
-            View Product
+            View
           </Link>
         </div>
       </div>
