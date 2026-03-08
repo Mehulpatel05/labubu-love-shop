@@ -22,9 +22,9 @@ export default function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-muted-foreground">Your cart is empty.</p>
-        <button onClick={() => navigate("/")} className="px-6 py-2 rounded-full bg-primary text-primary-foreground font-bold text-sm">
+        <button onClick={() => navigate("/")} className="px-6 py-3 rounded-full bg-primary text-primary-foreground font-bold text-sm active:scale-95 transition-transform">
           Shop Now
         </button>
       </div>
@@ -56,25 +56,49 @@ export default function Checkout() {
     `w-full px-4 py-3 rounded-xl border bg-card text-foreground text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all ${errors[field] ? "border-destructive" : "border-border"}`;
 
   return (
-    <section className="py-10">
+    <section className="py-6 sm:py-10">
       <div className="container max-w-3xl">
-        <h1 className="font-display text-2xl font-extrabold text-foreground mb-8">Checkout</h1>
-        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-4">
+        <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground mb-6 sm:mb-8">Checkout</h1>
+        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          {/* Order Summary - show first on mobile */}
+          <div className="space-y-4 md:order-2">
+            <h2 className="font-display font-bold text-foreground">Order Summary</h2>
+            <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+              {items.map((item) => (
+                <div key={item.product.id} className="flex items-center gap-3">
+                  <img src={item.product.image} alt={item.product.name} className="w-12 sm:w-14 h-12 sm:h-14 object-contain bg-cream rounded-lg" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-bold text-foreground truncate">{item.product.name}</p>
+                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-primary whitespace-nowrap">₹{item.product.price * item.quantity}</p>
+                </div>
+              ))}
+              <div className="pt-3 border-t flex justify-between font-display font-bold text-foreground">
+                <span>Total</span>
+                <span className="text-primary text-lg">₹{totalPrice}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Details */}
+          <div className="space-y-4 md:order-1">
             <h2 className="font-display font-bold text-foreground">Customer Details</h2>
             {(
               [
-                ["fullName", "Full Name"],
-                ["phone", "Phone Number"],
-                ["address", "Address"],
-                ["city", "City"],
-                ["state", "State"],
-                ["pinCode", "PIN Code"],
-              ] as [keyof FormData, string][]
-            ).map(([key, label]) => (
+                ["fullName", "Full Name", "text"],
+                ["phone", "Phone Number", "tel"],
+                ["address", "Address", "text"],
+                ["city", "City", "text"],
+                ["state", "State", "text"],
+                ["pinCode", "PIN Code", "text"],
+              ] as [keyof FormData, string, string][]
+            ).map(([key, label, type]) => (
               <div key={key}>
                 <label className="text-xs font-semibold text-muted-foreground mb-1 block">{label}</label>
                 <input
+                  type={type}
+                  inputMode={key === "phone" || key === "pinCode" ? "numeric" : undefined}
                   className={inputClass(key)}
                   value={form[key]}
                   onChange={(e) => update(key, e.target.value)}
@@ -90,28 +114,9 @@ export default function Checkout() {
                 <span className="text-sm font-bold text-foreground">Cash on Delivery (COD)</span>
               </div>
             </div>
-          </div>
-          <div className="space-y-4">
-            <h2 className="font-display font-bold text-foreground">Order Summary</h2>
-            <div className="bg-muted/50 rounded-xl p-4 space-y-3">
-              {items.map((item) => (
-                <div key={item.product.id} className="flex items-center gap-3">
-                  <img src={item.product.image} alt={item.product.name} className="w-14 h-14 object-contain bg-cream rounded-lg" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-foreground">{item.product.name}</p>
-                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                  </div>
-                  <p className="text-sm font-bold text-primary">₹{item.product.price * item.quantity}</p>
-                </div>
-              ))}
-              <div className="pt-3 border-t flex justify-between font-display font-bold text-foreground">
-                <span>Total</span>
-                <span className="text-primary">₹{totalPrice}</span>
-              </div>
-            </div>
             <button
               type="submit"
-              className="w-full py-3 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:scale-[1.02] transition-transform"
+              className="w-full py-3.5 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:scale-[1.02] active:scale-[0.98] transition-transform mt-2"
             >
               Confirm Order
             </button>
