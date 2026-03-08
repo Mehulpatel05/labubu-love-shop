@@ -12,12 +12,6 @@ export default function Navbar() {
           🧸 Labubu Store
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
-          <Link to="/" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
-            Home
-          </Link>
-          <Link to="/#products" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
-            Products
-          </Link>
           <button
             onClick={() => setIsCartOpen(true)}
             className="relative p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95"
