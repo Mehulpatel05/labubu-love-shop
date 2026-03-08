@@ -27,19 +27,19 @@ export default function ProductDetail() {
   };
 
   return (
-    <section className="py-6 sm:py-10">
-      <div className="container">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4 sm:mb-6 transition-colors active:scale-95">
+    <section className="py-4 sm:py-10">
+      <div className="container max-w-3xl">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-3 sm:mb-6 transition-colors active:scale-95">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
-          <div className="bg-cream rounded-2xl p-6 sm:p-8 flex items-center justify-center shadow-cute">
-            <img src={product.image} alt={product.name} className="w-full max-w-[250px] sm:max-w-sm object-contain animate-float" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-10">
+          <div className="bg-cream rounded-2xl p-4 sm:p-8 flex items-center justify-center shadow-cute">
+            <img src={product.image} alt={product.name} className="w-full max-w-[160px] sm:max-w-[220px] md:max-w-sm object-contain animate-float" />
           </div>
-          <div className="space-y-4 sm:space-y-6">
-            <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">{product.name}</h1>
-            <p className="text-xl sm:text-2xl font-extrabold text-primary">₹{product.price}</p>
-            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">{product.description}</p>
+          <div className="space-y-3 sm:space-y-5">
+            <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-extrabold text-foreground">{product.name}</h1>
+            <p className="text-lg sm:text-xl font-extrabold text-primary">₹{product.price}</p>
+            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{product.description}</p>
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-foreground">Quantity:</span>
               <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-10 w-10 rounded-full border bg-card flex items-center justify-center hover:bg-muted active:scale-90 transition-all">

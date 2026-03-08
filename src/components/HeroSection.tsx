@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export default function HeroSection() {
   return (
-    <section className="relative w-full overflow-hidden gradient-hero h-[50vh] min-h-[280px]">
+    <section className="relative w-full overflow-hidden gradient-hero h-[40vh] min-h-[220px]">
       <div className="container h-full flex flex-col-reverse md:flex-row items-center gap-3 sm:gap-4 py-4 sm:py-6 md:py-8">
         <div className="flex-1 text-center md:text-left space-y-2 sm:space-y-3 animate-fade-up">
           <h1 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold leading-tight text-foreground">
