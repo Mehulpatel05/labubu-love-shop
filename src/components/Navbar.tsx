@@ -1,9 +1,11 @@
-import { ShoppingCart, Package } from "lucide-react";
+import { ShoppingCart, Package, User, Shield, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 
 export default function Navbar() {
   const { totalItems, setIsCartOpen } = useCart();
+  const { user, isAdmin, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-card/90 backdrop-blur-lg">
@@ -11,10 +13,17 @@ export default function Navbar() {
         <Link to="/" className="font-display text-lg sm:text-xl font-extrabold text-primary">
           🧸 Labubu Store
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-3">
-          <Link to="/orders" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="My Orders">
-            <Package className="h-5 w-5 text-foreground" />
-          </Link>
+        <nav className="flex items-center gap-1 sm:gap-2">
+          {user && (
+            <Link to="/orders" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="My Orders">
+              <Package className="h-5 w-5 text-foreground" />
+            </Link>
+          )}
+          {isAdmin && (
+            <Link to="/admin" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Admin">
+              <Shield className="h-5 w-5 text-foreground" />
+            </Link>
+          )}
           <button
             onClick={() => setIsCartOpen(true)}
             className="relative p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95"
@@ -27,6 +36,15 @@ export default function Navbar() {
               </span>
             )}
           </button>
+          {user ? (
+            <button onClick={signOut} className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Logout">
+              <LogOut className="h-5 w-5 text-foreground" />
+            </button>
+          ) : (
+            <Link to="/login" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Login">
+              <User className="h-5 w-5 text-foreground" />
+            </Link>
+          )}
         </nav>
       </div>
     </header>
