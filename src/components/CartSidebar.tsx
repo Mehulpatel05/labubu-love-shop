@@ -29,7 +29,7 @@ export default function CartSidebar() {
           ) : (
             items.map((item) => (
               <div key={item.product.id} className="flex gap-3 sm:gap-4 bg-muted/50 rounded-xl p-3">
-                <img src={item.product.image} alt={item.product.name} className="w-16 sm:w-20 h-16 sm:h-20 object-contain bg-cream rounded-lg" />
+                <img src={item.product.image_url} alt={item.product.name} className="w-16 sm:w-20 h-16 sm:h-20 object-contain bg-cream rounded-lg" />
                 <div className="flex-1 space-y-1 min-w-0">
                   <h3 className="font-display font-bold text-xs sm:text-sm text-foreground truncate">{item.product.name}</h3>
                   <p className="text-primary font-bold text-xs sm:text-sm">₹{item.product.price}</p>
