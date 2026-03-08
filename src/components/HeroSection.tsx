@@ -32,7 +32,7 @@ export default function HeroSection() {
           <img
             src={heroBanner}
             alt="Labubu Cases Collection"
-            className="w-full max-w-md md:max-w-lg shadow-cute-lg animate-float object-cover rounded-2xl h-[250px] md:h-[350px]" />
+            className="w-full max-w-md md:max-w-lg shadow-cute-lg animate-float object-contain rounded-2xl" />
         </div>
       </div>
     </section>);
