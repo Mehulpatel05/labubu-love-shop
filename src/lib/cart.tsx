@@ -1,13 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import type { Product } from "@/lib/products";
 
-export interface Product {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  shortDescription: string;
-  image: string;
-}
+export type { Product };
 
 export interface CartItem {
   product: Product;

@@ -103,7 +103,7 @@ export default function Checkout() {
             <div className="bg-muted/50 rounded-xl p-4 space-y-3">
               {items.map((item) => (
                 <div key={item.product.id} className="flex items-center gap-3">
-                  <img src={item.product.image} alt={item.product.name} className="w-12 sm:w-14 h-12 sm:h-14 object-contain bg-cream rounded-lg" />
+                  <img src={item.product.image_url} alt={item.product.name} className="w-12 sm:w-14 h-12 sm:h-14 object-contain bg-cream rounded-lg" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm font-bold text-foreground truncate">{item.product.name}</p>
                     <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
