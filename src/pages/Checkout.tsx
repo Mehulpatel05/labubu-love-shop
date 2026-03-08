@@ -1,10 +1,9 @@
 import { useCart } from "@/lib/cart";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Navigate } from "react-router-dom";
 
 const schema = z.object({
   fullName: z.string().trim().min(1, "Full name is required").max(100),
@@ -17,18 +16,43 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+const CHECKOUT_FORM_KEY = "checkout_form_data";
+
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const [form, setForm] = useState<FormData>({ fullName: "", phone: "", address: "", city: "", state: "", pinCode: "" });
+  const location = useLocation();
+  const { user } = useAuth();
+
+  // Restore form data after login redirect
+  const savedForm = (() => {
+    try {
+      const saved = sessionStorage.getItem(CHECKOUT_FORM_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  })();
+
+  const [form, setForm] = useState<FormData>(savedForm || { fullName: "", phone: "", address: "", city: "", state: "", pinCode: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
-  if (authLoading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  // After login redirect, auto-submit if we have saved form data
+  useEffect(() => {
+    if (user && savedForm && location.state?.fromCheckout) {
+      sessionStorage.removeItem(CHECKOUT_FORM_KEY);
+      setPendingSubmit(true);
+    }
+  }, [user]);
 
-  if (items.length === 0) {
+  useEffect(() => {
+    if (pendingSubmit && user) {
+      setPendingSubmit(false);
+      placeOrder();
+    }
+  }, [pendingSubmit, user]);
+
+  if (items.length === 0 && !pendingSubmit) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-muted-foreground">Your cart is empty.</p>
@@ -44,19 +68,8 @@ export default function Checkout() {
     setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = schema.safeParse(form);
-    if (!result.success) {
-      const fieldErrors: typeof errors = {};
-      result.error.errors.forEach((err) => {
-        const key = err.path[0] as keyof FormData;
-        fieldErrors[key] = err.message;
-      });
-      setErrors(fieldErrors);
-      return;
-    }
-
+  const placeOrder = async () => {
+    if (!user) return;
     setSubmitting(true);
     try {
       const { data: order, error: dbError } = await supabase
@@ -77,6 +90,7 @@ export default function Checkout() {
 
       if (dbError) throw dbError;
 
+      sessionStorage.removeItem(CHECKOUT_FORM_KEY);
       navigate("/order-confirmation", {
         state: { customer: form, items, totalPrice, orderNumber: order.order_number },
       });
@@ -87,6 +101,29 @@ export default function Checkout() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = schema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: typeof errors = {};
+      result.error.errors.forEach((err) => {
+        const key = err.path[0] as keyof FormData;
+        fieldErrors[key] = err.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    // If not logged in, save form and redirect to login
+    if (!user) {
+      sessionStorage.setItem(CHECKOUT_FORM_KEY, JSON.stringify(form));
+      navigate("/login", { state: { fromCheckout: true } });
+      return;
+    }
+
+    await placeOrder();
   };
 
   const inputClass = (field: keyof FormData) =>
