@@ -2,6 +2,7 @@ import { useCart } from "@/lib/cart";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const schema = z.object({
   fullName: z.string().trim().min(1, "Full name is required").max(100),
@@ -19,6 +20,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const [form, setForm] = useState<FormData>({ fullName: "", phone: "", address: "", city: "", state: "", pinCode: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   if (items.length === 0) {
     return (
@@ -36,7 +38,7 @@ export default function Checkout() {
     setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = schema.safeParse(form);
     if (!result.success) {
@@ -48,8 +50,57 @@ export default function Checkout() {
       setErrors(fieldErrors);
       return;
     }
-    navigate("/order-confirmation", { state: { customer: form, items, totalPrice } });
-    clearCart();
+
+    setSubmitting(true);
+    try {
+      // Save order to database
+      const { data: order, error: dbError } = await supabase
+        .from("orders")
+        .insert({
+          customer_name: form.fullName,
+          customer_phone: form.phone,
+          customer_address: form.address,
+          customer_city: form.city,
+          customer_state: form.state,
+          customer_pincode: form.pinCode,
+          items: items as any,
+          total_price: totalPrice,
+        })
+        .select()
+        .single();
+
+      if (dbError) throw dbError;
+
+      // Send WhatsApp notification
+      const itemsList = items
+        .map((item) => `• ${item.product.name} x${item.quantity} - ₹${item.product.price * item.quantity}`)
+        .join('\n');
+
+      const whatsappMessage = `🧸 *New Order!*\n\n*Order:* ${order.order_number}\n*Customer:* ${form.fullName}\n*Phone:* ${form.phone}\n*Address:* ${form.address}, ${form.city}, ${form.state} - ${form.pinCode}\n\n*Items:*\n${itemsList}\n\n*Total:* ₹${totalPrice}\n*Payment:* COD`;
+
+      // Open WhatsApp with the message to notify the store owner
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=918306590731&text=${encodeURIComponent(whatsappMessage)}`;
+      window.open(whatsappUrl, '_blank');
+
+      // Try sending edge function notification too
+      try {
+        await supabase.functions.invoke("send-order-notification", {
+          body: { orderNumber: order.order_number, customer: form, items, totalPrice },
+        });
+      } catch (notifError) {
+        console.log("Notification edge function not critical:", notifError);
+      }
+
+      navigate("/order-confirmation", {
+        state: { customer: form, items, totalPrice, orderNumber: order.order_number },
+      });
+      clearCart();
+    } catch (err: any) {
+      console.error("Order error:", err);
+      alert("Order place karne mein error aaya. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const inputClass = (field: keyof FormData) =>
@@ -60,7 +111,7 @@ export default function Checkout() {
       <div className="container max-w-3xl">
         <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground mb-6 sm:mb-8">Checkout</h1>
         <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-          {/* Order Summary - show first on mobile */}
+          {/* Order Summary */}
           <div className="space-y-4 md:order-2">
             <h2 className="font-display font-bold text-foreground">Order Summary</h2>
             <div className="bg-muted/50 rounded-xl p-4 space-y-3">
@@ -116,9 +167,10 @@ export default function Checkout() {
             </div>
             <button
               type="submit"
-              className="w-full py-3.5 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:scale-[1.02] active:scale-[0.98] transition-transform mt-2"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:scale-[1.02] active:scale-[0.98] transition-transform mt-2 disabled:opacity-50"
             >
-              Confirm Order
+              {submitting ? "Placing Order..." : "Confirm Order"}
             </button>
           </div>
         </form>
