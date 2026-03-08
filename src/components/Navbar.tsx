@@ -1,11 +1,17 @@
 import { ShoppingCart, Package, User, Shield, LogOut } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 
 export default function Navbar() {
   const { totalItems, setIsCartOpen } = useCart();
   const { user, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-card/90 backdrop-blur-lg">
@@ -37,7 +43,7 @@ export default function Navbar() {
             )}
           </button>
           {user ? (
-            <button onClick={signOut} className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Logout">
+            <button onClick={handleLogout} className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Logout">
               <LogOut className="h-5 w-5 text-foreground" />
             </button>
           ) : (
