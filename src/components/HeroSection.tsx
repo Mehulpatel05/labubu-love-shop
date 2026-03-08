@@ -6,11 +6,11 @@ export default function HeroSection() {
     <section className="relative w-full overflow-hidden gradient-hero">
       <div className="container flex flex-col-reverse md:flex-row items-center gap-6 sm:gap-8 py-8 sm:py-12 md:py-20">
         <div className="flex-1 text-center md:text-left space-y-4 sm:space-y-5 animate-fade-up">
-          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight text-foreground">
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-foreground">
             Cute Protection for Your Tech –{" "}
             <span className="text-primary">Labubu Cases</span>
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-md mx-auto md:mx-0">
+          <p className="text-muted-foreground text-base sm:text-lg md:text-xl max-w-lg mx-auto md:mx-0">
             Protect your AirPods and iPhone charger with adorable Labubu style.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
