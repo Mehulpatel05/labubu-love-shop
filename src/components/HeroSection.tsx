@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 export default function HeroSection() {
   return (
     <section className="relative w-full overflow-hidden gradient-hero">
-      <div className="container flex flex-col-reverse md:flex-row items-center gap-6 sm:gap-8 py-8 sm:py-12 md:py-20">
+      <div className="container flex flex-col-reverse md:flex-row items-center gap-6 sm:gap-8 py-10 sm:py-16 md:py-24">
         <div className="flex-1 text-center md:text-left space-y-4 sm:space-y-5 animate-fade-up">
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-foreground">
             Cute Protection for Your Tech –{" "}
