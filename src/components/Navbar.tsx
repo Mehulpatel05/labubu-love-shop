@@ -1,11 +1,9 @@
-import { ShoppingCart, Menu, X } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/lib/cart";
-import { useState } from "react";
 
 export default function Navbar() {
   const { totalItems, setIsCartOpen } = useCart();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-card/90 backdrop-blur-lg">
@@ -14,10 +12,10 @@ export default function Navbar() {
           🧸 Labubu Store
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
-          <Link to="/" className="hidden sm:block text-sm font-semibold text-foreground hover:text-primary transition-colors">
+          <Link to="/" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
             Home
           </Link>
-          <Link to="/#products" className="hidden sm:block text-sm font-semibold text-foreground hover:text-primary transition-colors">
+          <Link to="/#products" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
             Products
           </Link>
           <button
@@ -32,28 +30,8 @@ export default function Navbar() {
               </span>
             )}
           </button>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="sm:hidden p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95"
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </nav>
       </div>
-      {/* Mobile menu dropdown */}
-      {menuOpen && (
-        <div className="sm:hidden border-t bg-card/95 backdrop-blur-lg animate-fade-up">
-          <div className="container py-3 flex flex-col gap-2">
-            <Link to="/" onClick={() => setMenuOpen(false)} className="py-2.5 px-4 rounded-xl text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-              Home
-            </Link>
-            <Link to="/#products" onClick={() => setMenuOpen(false)} className="py-2.5 px-4 rounded-xl text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-              Products
-            </Link>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
