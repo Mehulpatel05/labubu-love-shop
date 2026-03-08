@@ -1,4 +1,4 @@
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/lib/cart";
 
@@ -11,7 +11,10 @@ export default function Navbar() {
         <Link to="/" className="font-display text-lg sm:text-xl font-extrabold text-primary">
           🧸 Labubu Store
         </Link>
-        <nav className="flex items-center gap-2 sm:gap-4">
+        <nav className="flex items-center gap-1 sm:gap-3">
+          <Link to="/orders" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="My Orders">
+            <Package className="h-5 w-5 text-foreground" />
+          </Link>
           <button
             onClick={() => setIsCartOpen(true)}
             className="relative p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95"
