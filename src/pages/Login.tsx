@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Eye, EyeOff } from "lucide-react";
@@ -11,10 +11,16 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  const fromCheckout = (location.state as any)?.fromCheckout;
 
   if (user) {
-    navigate("/", { replace: true });
+    if (fromCheckout) {
+      navigate("/checkout", { replace: true, state: { fromCheckout: true } });
+    } else {
+      navigate("/", { replace: true });
+    }
     return null;
   }
 
@@ -26,7 +32,11 @@ export default function Login() {
     if (error) {
       setError(error.message);
     } else {
-      navigate("/");
+      if (fromCheckout) {
+        navigate("/checkout", { state: { fromCheckout: true } });
+      } else {
+        navigate("/");
+      }
     }
     setLoading(false);
   };
@@ -36,7 +46,9 @@ export default function Login() {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <h1 className="font-display text-2xl font-extrabold text-foreground">Welcome Back 🧸</h1>
-          <p className="text-sm text-muted-foreground mt-1">Login to your account</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {fromCheckout ? "Login to place your order" : "Login to your account"}
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -81,7 +93,7 @@ export default function Login() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <Link to="/signup" className="text-primary font-bold hover:underline">Sign Up</Link>
+          <Link to="/signup" state={fromCheckout ? { fromCheckout: true } : undefined} className="text-primary font-bold hover:underline">Sign Up</Link>
         </p>
       </div>
     </section>
