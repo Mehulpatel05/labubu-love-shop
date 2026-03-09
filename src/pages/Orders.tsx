@@ -150,8 +150,15 @@ export default function Orders() {
         ) : (
           <>
             {loading ? (
-              <div className="text-center py-12">
-                <Clock className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <div className="space-y-3">
+                {[1,2,3].map(i => (
+                  <div key={i} className="bg-card rounded-2xl border p-4 animate-pulse">
+                    <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-1/4 mb-3"></div>
+                    <div className="h-3 bg-muted rounded w-full mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </div>
+                ))}
               </div>
             ) : orders.length === 0 ? (
               <div className="text-center py-12 space-y-3">

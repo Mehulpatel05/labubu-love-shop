@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import SeedProducts from "./pages/SeedProducts";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1 } },
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/seed-products" element={<SeedProducts />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

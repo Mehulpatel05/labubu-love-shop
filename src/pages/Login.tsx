@@ -37,7 +37,7 @@ export default function Login() {
         navigate("/");
       }
     } catch (err: any) {
-      setError(err.message);
+      setError("Invalid email or password");
     }
     setLoading(false);
   };
@@ -56,11 +56,11 @@ export default function Login() {
           <div>
             <label className="text-xs font-semibold text-muted-foreground mb-1 block">Email</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="you@example.com"
+              placeholder="Email or Username"
               required
             />
           </div>

@@ -13,7 +13,7 @@ export default function Navbar() {
     try {
       await signOut();
       console.log("Sign out successful");
-      navigate("/");
+      window.location.href = "/";
     } catch (err) {
       console.error("Sign out error:", err);
     }

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { ref, push, set } from "firebase/database";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const schema = z.object({
   fullName: z.string().trim().min(1, "Full name is required").max(100),
@@ -24,6 +25,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // Restore form data after login redirect
   const savedForm = (() => {
@@ -90,6 +92,11 @@ export default function Checkout() {
         created_at: new Date().toISOString()
       };
       await set(orderRef, orderData);
+
+      toast({
+        title: "Order Placed Successfully! 🎉",
+        description: `Order #${orderNumber} has been confirmed.`,
+      });
 
       sessionStorage.removeItem(CHECKOUT_FORM_KEY);
       navigate("/order-confirmation", {
