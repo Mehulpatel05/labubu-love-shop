@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useAuth } from "@/lib/auth";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -28,15 +29,15 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message);
-    } else {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       if (fromCheckout) {
         navigate("/checkout", { state: { fromCheckout: true } });
       } else {
         navigate("/");
       }
+    } catch (err: any) {
+      setError(err.message);
     }
     setLoading(false);
   };

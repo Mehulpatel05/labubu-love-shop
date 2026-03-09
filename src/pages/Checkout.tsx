@@ -2,7 +2,8 @@ import { useCart } from "@/lib/cart";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { ref, push, set } from "firebase/database";
 import { useAuth } from "@/lib/auth";
 
 const schema = z.object({
@@ -72,27 +73,27 @@ export default function Checkout() {
     if (!user) return;
     setSubmitting(true);
     try {
-      const { data: order, error: dbError } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          customer_name: form.fullName,
-          customer_phone: form.phone,
-          customer_address: form.address,
-          customer_city: form.city,
-          customer_state: form.state,
-          customer_pincode: form.pinCode,
-          items: items as any,
-          total_price: totalPrice,
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
+      const orderRef = push(ref(db, "orders"));
+      const orderNumber = `ORD-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
+      const orderData = {
+        user_id: user.uid,
+        order_number: orderNumber,
+        customer_name: form.fullName,
+        customer_phone: form.phone,
+        customer_address: form.address,
+        customer_city: form.city,
+        customer_state: form.state,
+        customer_pincode: form.pinCode,
+        items: items.map(i => ({ product: { id: i.product.id, name: i.product.name, price: i.product.price, image: i.product.image_url }, quantity: i.quantity })),
+        total_price: totalPrice,
+        status: "confirmed",
+        created_at: new Date().toISOString()
+      };
+      await set(orderRef, orderData);
 
       sessionStorage.removeItem(CHECKOUT_FORM_KEY);
       navigate("/order-confirmation", {
-        state: { customer: form, items, totalPrice, orderNumber: order.order_number },
+        state: { customer: form, items, totalPrice, orderNumber },
       });
       clearCart();
     } catch (err: any) {

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Package, RefreshCw, ChevronDown, Plus, Pencil, Trash2, X, Upload, ShoppingBag } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { ref, get, set, remove, onValue, push } from "firebase/database";
+import { Package, RefreshCw, ChevronDown, Plus, Pencil, Trash2, X, ShoppingBag } from "lucide-react";
 import { fetchAllProductsAdmin, type Product } from "@/lib/products";
 
 const STATUS_OPTIONS = ["confirmed", "processing", "shipped", "out_for_delivery", "delivered"] as const;
@@ -68,21 +69,28 @@ function OrdersTab() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
-    if (!error && data) setOrders(data as Order[]);
+    const snapshot = await get(ref(db, "orders"));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const allOrders = Object.entries(data)
+        .map(([id, val]: [string, any]) => ({ id, ...val }))
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setOrders(allOrders as Order[]);
+    }
     setLoading(false);
   };
 
   useEffect(() => { fetchOrders(); }, []);
 
   useEffect(() => {
-    const channel = supabase.channel("admin-orders").on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => fetchOrders()).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const ordersRef = ref(db, "orders");
+    const unsubscribe = onValue(ordersRef, () => fetchOrders());
+    return () => unsubscribe();
   }, []);
 
   const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingId(orderId);
-    await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
+    await set(ref(db, `orders/${orderId}/status`), newStatus);
     setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o));
     setUpdatingId(null);
   };
@@ -176,12 +184,12 @@ function ProductsTab() {
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
-    await supabase.from("products").delete().eq("id", id);
+    await remove(ref(db, `products/${id}`));
     setProducts((p) => p.filter((x) => x.id !== id));
   };
 
   const toggleActive = async (product: Product) => {
-    await supabase.from("products").update({ is_active: !product.is_active }).eq("id", product.id);
+    await set(ref(db, `products/${product.id}/is_active`), !product.is_active);
     setProducts((p) => p.map((x) => x.id === product.id ? { ...x, is_active: !x.is_active } : x));
   };
 
@@ -229,7 +237,6 @@ function ProductsTab() {
 function ProductForm({ product, isNew, onDone, onCancel }: { product: Product; isNew: boolean; onDone: () => void; onCancel: () => void }) {
   const [form, setForm] = useState(product);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   const update = (field: keyof Product, value: any) => {
@@ -237,23 +244,6 @@ function ProductForm({ product, isNew, onDone, onCancel }: { product: Product; i
     if (field === "name" && isNew) {
       setForm((f) => ({ ...f, [field]: value, slug: value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") }));
     }
-  };
-
-  const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${form.slug || "product"}-${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
-    if (uploadError) {
-      setError("Image upload failed: " + uploadError.message);
-      setUploading(false);
-      return;
-    }
-    const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
-    setForm((f) => ({ ...f, image_url: publicUrl }));
-    setUploading(false);
   };
 
   const save = async () => {
@@ -264,32 +254,28 @@ function ProductForm({ product, isNew, onDone, onCancel }: { product: Product; i
     setSaving(true);
     setError("");
 
-    if (isNew) {
-      const { error: dbError } = await supabase.from("products").insert({
-        slug: form.slug,
-        name: form.name,
-        price: form.price,
-        short_description: form.short_description,
-        description: form.description,
-        image_url: form.image_url,
-        is_active: form.is_active,
-      });
-      if (dbError) { setError(dbError.message); setSaving(false); return; }
-    } else {
-      const { error: dbError } = await supabase.from("products").update({
-        name: form.name,
-        slug: form.slug,
-        price: form.price,
-        short_description: form.short_description,
-        description: form.description,
-        image_url: form.image_url,
-        is_active: form.is_active,
-      }).eq("id", product.id);
-      if (dbError) { setError(dbError.message); setSaving(false); return; }
-    }
+    const productData = {
+      slug: form.slug,
+      name: form.name,
+      price: form.price,
+      short_description: form.short_description,
+      description: form.description,
+      image_url: form.image_url,
+      is_active: form.is_active,
+    };
 
+    try {
+      if (isNew) {
+        const newRef = push(ref(db, "products"));
+        await set(newRef, productData);
+      } else {
+        await set(ref(db, `products/${product.id}`), { ...productData, id: product.id });
+      }
+      onDone();
+    } catch (err: any) {
+      setError(err.message);
+    }
     setSaving(false);
-    onDone();
   };
 
   const inputClass = "w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
@@ -330,15 +316,9 @@ function ProductForm({ product, isNew, onDone, onCancel }: { product: Product; i
           <textarea className={`${inputClass} min-h-[100px]`} value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Detailed description" />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold text-muted-foreground mb-1 block">Product Image</label>
-          <div className="flex items-center gap-4">
-            {form.image_url && <img src={form.image_url} alt="Preview" className="w-20 h-20 object-contain bg-cream rounded-xl" />}
-            <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-border cursor-pointer hover:bg-muted transition-colors">
-              <Upload className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{uploading ? "Uploading..." : "Upload Image"}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={uploadImage} disabled={uploading} />
-            </label>
-          </div>
+          <label className="text-xs font-semibold text-muted-foreground mb-1 block">Image URL</label>
+          <input className={inputClass} value={form.image_url} onChange={(e) => update("image_url", e.target.value)} placeholder="/products/image.png" />
+          {form.image_url && <img src={form.image_url} alt="Preview" className="w-20 h-20 object-contain bg-cream rounded-xl mt-2" />}
         </div>
       </div>
 

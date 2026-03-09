@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { ref, query, orderByChild, equalTo, get, onValue } from "firebase/database";
 import { Package, Truck, CheckCircle, Clock, Box } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Navigate } from "react-router-dom";
@@ -31,12 +32,15 @@ export default function Orders() {
   const fetchOrders = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (!error && data) setOrders(data as Order[]);
+    const snapshot = await get(ref(db, "orders"));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const userOrders = Object.entries(data)
+        .map(([id, val]: [string, any]) => ({ id, ...val }))
+        .filter((o: any) => o.user_id === user.uid)
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setOrders(userOrders as Order[]);
+    }
     setLoading(false);
   };
 
@@ -47,14 +51,22 @@ export default function Orders() {
   // Realtime for live status updates
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel("user-orders")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload) => {
-        setOrders((prev) => prev.map((o) => o.id === payload.new.id ? { ...o, ...payload.new } as Order : o));
-        setSelectedOrder((prev) => prev && prev.id === payload.new.id ? { ...prev, ...payload.new } as Order : prev);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const ordersRef = ref(db, "orders");
+    const unsubscribe = onValue(ordersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const userOrders = Object.entries(data)
+          .map(([id, val]: [string, any]) => ({ id, ...val }))
+          .filter((o: any) => o.user_id === user.uid)
+          .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setOrders(userOrders as Order[]);
+        if (selectedOrder) {
+          const updated = userOrders.find((o: any) => o.id === selectedOrder.id);
+          if (updated) setSelectedOrder(updated as Order);
+        }
+      }
+    });
+    return () => unsubscribe();
   }, [user]);
 
   if (authLoading) return null;

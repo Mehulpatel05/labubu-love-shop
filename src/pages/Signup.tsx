@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { ref, set } from "firebase/database";
 import { useAuth } from "@/lib/auth";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -33,19 +35,21 @@ export default function Signup() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-    if (error) {
-      setError(error.message);
-    } else {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: fullName });
+      await set(ref(db, `profiles/${userCredential.user.uid}`), {
+        email,
+        full_name: fullName,
+        created_at: new Date().toISOString()
+      });
       if (fromCheckout) {
         navigate("/checkout", { state: { fromCheckout: true } });
       } else {
         navigate("/");
       }
+    } catch (err: any) {
+      setError(err.message);
     }
     setLoading(false);
   };

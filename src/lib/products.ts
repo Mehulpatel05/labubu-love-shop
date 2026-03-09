@@ -1,4 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "./firebase";
+import { ref, get, query, orderByChild, equalTo } from "firebase/database";
 
 export interface Product {
   id: string;
@@ -12,31 +13,30 @@ export interface Product {
 }
 
 export async function fetchProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as Product[];
+  const snapshot = await get(ref(db, "products"));
+  if (!snapshot.exists()) return [];
+  const data = snapshot.val();
+  return Object.entries(data)
+    .map(([id, val]: [string, any]) => ({ id, ...val }))
+    .filter((p: Product) => p.is_active)
+    .sort((a, b) => (a.name > b.name ? 1 : -1));
 }
 
 export async function fetchProduct(slug: string): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (error) throw error;
-  return data as Product | null;
+  const snapshot = await get(ref(db, "products"));
+  if (!snapshot.exists()) return null;
+  const data = snapshot.val();
+  const product = Object.entries(data)
+    .map(([id, val]: [string, any]) => ({ id, ...val }))
+    .find((p: Product) => p.slug === slug && p.is_active);
+  return product || null;
 }
 
 export async function fetchAllProductsAdmin(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as Product[];
+  const snapshot = await get(ref(db, "products"));
+  if (!snapshot.exists()) return [];
+  const data = snapshot.val();
+  return Object.entries(data)
+    .map(([id, val]: [string, any]) => ({ id, ...val }))
+    .sort((a, b) => (a.name > b.name ? 1 : -1));
 }
