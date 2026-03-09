@@ -3,11 +3,19 @@ import { fetchProducts, type Product } from "@/lib/products";
 import ProductCard from "./ProductCard";
 import { Search } from "lucide-react";
 
+const categories = [
+  { id: "all", label: "All" },
+  { id: "phone", label: "Phone" },
+  { id: "case", label: "Cases" },
+  { id: "accessories", label: "Accessories" },
+];
+
 export default function ProductGrid() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     fetchProducts().then((p) => { 
@@ -18,16 +26,24 @@ export default function ProductGrid() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter(p => 
+    let filtered = products;
+    
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(selectedCategory) ||
+        p.short_description.toLowerCase().includes(selectedCategory)
+      );
+    }
+    
+    if (searchQuery.trim() !== "") {
+      filtered = filtered.filter(p => 
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.short_description.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredProducts(filtered);
     }
-  }, [searchQuery, products]);
+    
+    setFilteredProducts(filtered);
+  }, [searchQuery, selectedCategory, products]);
 
   return (
     <section id="products" className="py-10 sm:py-16 bg-background">
@@ -39,7 +55,7 @@ export default function ProductGrid() {
           Browse our adorable Labubu collection
         </p>
         
-        <div className="max-w-md mx-auto mb-8">
+        <div className="max-w-md mx-auto mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
@@ -50,6 +66,22 @@ export default function ProductGrid() {
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
+        </div>
+
+        <div className="flex gap-2 justify-center mb-8 flex-wrap">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                selectedCategory === cat.id
+                  ? "bg-primary text-primary-foreground shadow-cute"
+                  : "bg-card border hover:border-primary"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
         </div>
 
         {loading ? (
