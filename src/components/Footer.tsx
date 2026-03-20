@@ -6,23 +6,26 @@ export default function Footer() {
     <footer className="bg-card border-t py-8 sm:py-10">
       <div className="container">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 sm:gap-8 text-sm">
-          <div className="space-y-3 text-center sm:text-left">
+          <div className="space-y-3 text-center sm:text-left border-b sm:border-b-0 pb-5 sm:pb-0">
             <h4 className="font-display font-bold text-foreground">🧸 Labubu Store</h4>
             <p className="text-muted-foreground text-xs sm:text-sm">Cute protection for your everyday tech.</p>
             <div className="flex gap-3 justify-center sm:justify-start">
               <a href="mailto:hello@labubustore.com" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition-colors" aria-label="Email">
+                {/* TODO: Replace with your real email */}
                 <Mail className="h-5 w-5" />
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
+              <a href="https://instagram.com/labubustore" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
+                {/* TODO: Replace with your real Instagram URL */}
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-green-600 hover:text-green-700 transition-colors" aria-label="WhatsApp">
-                <MessageCircle className="h-5 w-5" />
+              <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition-colors" aria-label="WhatsApp">
+                {/* TODO: Replace with your real WhatsApp number */}
+                <MessageCircle className="h-5 w-5 text-green-600" />
               </a>
             </div>
           </div>
           
-          <div className="space-y-2 text-center sm:text-left">
+          <div className="space-y-2 text-center sm:text-left border-b sm:border-b-0 pb-5 sm:pb-0">
             <h4 className="font-display font-bold text-foreground">Policies</h4>
             <div className="flex flex-col gap-1">
               <Link to="/privacy-policy" className="text-muted-foreground hover:text-primary text-xs sm:text-sm transition-colors">Privacy Policy</Link>
@@ -32,7 +35,7 @@ export default function Footer() {
             </div>
           </div>
           
-          <div className="space-y-2 text-center sm:text-left">
+          <div className="space-y-2 text-center sm:text-left border-b sm:border-b-0 pb-5 sm:pb-0">
             <h4 className="font-display font-bold text-foreground">Shipping</h4>
             <p className="text-muted-foreground text-xs sm:text-sm">Free shipping on orders above ₹999. Delivery within 5-7 business days across India.</p>
           </div>

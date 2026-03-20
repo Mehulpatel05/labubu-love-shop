@@ -64,6 +64,12 @@ export default function CartSidebar() {
             >
               Checkout
             </Link>
+            <button
+              onClick={() => setIsCartOpen(false)}
+              className="block w-full py-2.5 rounded-full border border-border text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors text-center"
+            >
+              Continue Shopping
+            </button>
           </div>
         )}
       </div>

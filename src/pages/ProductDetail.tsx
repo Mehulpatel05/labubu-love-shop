@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { fetchProduct, fetchProducts, type Product } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useState, useEffect } from "react";
-import { Minus, Plus, ArrowLeft, Check, Star, ShieldCheck, Truck, RotateCcw } from "lucide-react";
+import { Minus, Plus, ArrowLeft, Check, ShieldCheck, Truck, RotateCcw } from "lucide-react";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +29,30 @@ export default function ProductDetail() {
   }, [id]);
 
   if (loading) {
-    return <div className="min-h-[60vh] flex items-center justify-center text-muted-foreground">Loading...</div>;
+    return (
+      <div className="bg-background min-h-screen pb-20">
+        <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-lg border-b px-3 py-2.5 flex items-center gap-3">
+          <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
+          <div className="h-4 bg-muted rounded w-40 animate-pulse" />
+        </div>
+        <div className="bg-white p-6 flex items-center justify-center">
+          <div className="w-[200px] h-[200px] bg-muted rounded-2xl animate-pulse" />
+        </div>
+        <div className="px-4 py-3 bg-card space-y-3 mt-1.5">
+          <div className="h-7 bg-muted rounded w-24 animate-pulse" />
+          <div className="h-5 bg-muted rounded w-3/4 animate-pulse" />
+        </div>
+        <div className="px-4 py-3 bg-card mt-1.5 flex gap-6">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-12 w-16 bg-muted rounded-xl animate-pulse" />)}
+        </div>
+        <div className="px-4 py-3 bg-card mt-1.5 space-y-2">
+          <div className="h-4 bg-muted rounded w-28 animate-pulse" />
+          <div className="h-3 bg-muted rounded w-full animate-pulse" />
+          <div className="h-3 bg-muted rounded w-5/6 animate-pulse" />
+          <div className="h-3 bg-muted rounded w-4/6 animate-pulse" />
+        </div>
+      </div>
+    );
   }
 
   if (!product) {
@@ -69,12 +92,6 @@ export default function ProductDetail() {
           <span className="text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded">{discount}% off</span>
         </div>
         <h1 className="text-base font-bold text-foreground leading-snug">{product.name}</h1>
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5 bg-green-600 text-white px-1.5 py-0.5 rounded text-xs font-bold">
-            4.3 <Star className="h-3 w-3 fill-white" />
-          </div>
-          <span className="text-xs text-muted-foreground">1,234 Ratings</span>
-        </div>
       </div>
 
       <div className="px-4 py-3 bg-card mt-1.5 flex items-center gap-4 overflow-x-auto">
@@ -123,7 +140,7 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-lg border-t px-4 py-2.5 flex gap-3 safe-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-lg border-t px-4 py-2.5 pb-safe flex gap-3">
         <button
           onClick={handleAdd}
           className={`flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 ${

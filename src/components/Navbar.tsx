@@ -27,8 +27,8 @@ export default function Navbar() {
         <Link to="/" className="font-display text-lg sm:text-xl font-extrabold text-primary">
           🧸 Labubu Store
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <Link to="/wishlist" className="relative p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Wishlist">
+        <nav className="flex items-center gap-0.5 sm:gap-2">
+          <Link to="/wishlist" className="relative p-2 sm:p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Wishlist">
             <Heart className="h-5 w-5 text-foreground" />
             {wishlist.length > 0 && (
               <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
@@ -37,18 +37,18 @@ export default function Navbar() {
             )}
           </Link>
           {user && (
-            <Link to="/orders" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="My Orders">
+            <Link to="/orders" className="p-2 sm:p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="My Orders">
               <Package className="h-5 w-5 text-foreground" />
             </Link>
           )}
           {isAdmin && (
-            <Link to="/admin" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Admin">
+            <Link to="/admin" className="p-2 sm:p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Admin">
               <Shield className="h-5 w-5 text-foreground" />
             </Link>
           )}
           <button
             onClick={() => setIsCartOpen(true)}
-            className="relative p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95"
+            className="relative p-2 sm:p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95"
             aria-label="Open cart"
           >
             <ShoppingCart className="h-5 w-5 text-foreground" />
@@ -59,12 +59,12 @@ export default function Navbar() {
             )}
           </button>
           {user ? (
-            <button onClick={handleLogout} className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Logout">
-              <LogOut className="h-5 w-5 text-foreground" />
+            <button onClick={handleLogout} className="p-2 sm:p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Logout">
+              <LogOut className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
             </button>
           ) : (
-            <Link to="/login" className="p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Login">
-              <User className="h-5 w-5 text-foreground" />
+            <Link to="/login" className="p-2 sm:p-2.5 rounded-full hover:bg-muted transition-colors active:scale-95" aria-label="Login">
+              <User className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
             </Link>
           )}
         </nav>

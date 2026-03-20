@@ -4,15 +4,15 @@ import { Link } from "react-router-dom";
 export default function HeroSection() {
   return (
     <section className="relative w-full overflow-hidden gradient-hero">
-      <div className="container md:flex-row items-center py-12 md:py-20 gap-[25px] flex flex-row">
+      <div className="container flex flex-col md:flex-row items-center py-10 md:py-20 gap-6 md:gap-[25px]">
         <div className="flex-1 text-center md:text-left space-y-5 animate-fade-up">
-          <h1 className="font-display sm:text-4xl md:text-5xl font-extrabold leading-tight text-foreground text-xl">
+          <h1 className="font-display text-2xl sm:text-4xl md:text-5xl font-extrabold leading-tight text-foreground">
             Cute Protection for Your Tech –{" "}
             <span className="text-primary">Labubu Cases</span>
           </h1>
-          
-
-          
+          <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto md:mx-0">
+            Adorable Labubu-themed accessories for your phone, earphones & more. 🐰✨
+          </p>
           <div className="flex-wrap md:justify-start flex items-center justify-center gap-[15px]">
             <Link
               to="/#products"
