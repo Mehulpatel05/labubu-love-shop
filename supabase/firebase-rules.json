@@ -1,0 +1,49 @@
+{
+  "rules": {
+    "otp_store": {
+      "$phone": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['otp', 'expires'])"
+      }
+    },
+    "otp_rate_limit": {
+      "$phone": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "phone_users": {
+      "$phone": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "profiles": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "orders": {
+      ".read": "auth != null && root.child('admin_uids').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admin_uids').child(auth.uid).exists()",
+      "$orderId": {
+        ".read": "auth != null && (root.child('admin_uids').child(auth.uid).exists() || data.child('user_id').val() === auth.uid)",
+        ".write": "auth != null && (root.child('admin_uids').child(auth.uid).exists() || (!data.exists() && newData.child('user_id').val() === auth.uid))"
+      }
+    },
+    "products": {
+      ".read": true,
+      ".write": "auth != null && root.child('admin_uids').child(auth.uid).exists()"
+    },
+    "admin_uids": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "user_roles": {
+      ".read": "auth != null",
+      ".write": false
+    }
+  }
+}

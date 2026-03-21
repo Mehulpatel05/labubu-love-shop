@@ -1,11 +1,12 @@
 import { db } from "./firebase";
-import { ref, get, query, orderByChild, equalTo } from "firebase/database";
+import { ref, get } from "firebase/database";
 
 export interface Product {
   id: string;
   slug: string;
   name: string;
   price: number;
+  cost_price?: number;
   short_description: string;
   description: string;
   image_url: string;

@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/lib/auth";
+import { useAuth, checkOtpRateLimit, recordOtpAttempt } from "@/lib/auth";
 import { auth, db } from "@/lib/firebase";
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import { ref, set, get, remove } from "firebase/database";
-import { Phone, ArrowRight, RotateCcw, CheckCircle2, Sparkles } from "lucide-react";
+import { Phone, ArrowRight, RotateCcw, CheckCircle2, Sparkles, ShieldAlert } from "lucide-react";
 
 type Step = "phone" | "otp" | "name";
 
 const FAST2SMS_KEY = import.meta.env.VITE_FAST2SMS_KEY;
-const ADMIN_PHONE = "8306590731";
+const ADMIN_PHONE = import.meta.env.VITE_ADMIN_PHONE as string;
 
 function sanitize(val: string) {
   return val.replace(/[\r\n]/g, "").slice(0, 20);
@@ -70,6 +70,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
@@ -100,10 +101,22 @@ export default function Login() {
     if (phone.length !== 10) return setError("Please enter a valid 10-digit number");
     setError("");
     setLoading(true);
+
+    // Rate limit check
+    const { allowed, waitSeconds } = await checkOtpRateLimit(phone);
+    if (!allowed) {
+      setBlocked(true);
+      setError(`Too many attempts. Try again in ${Math.ceil(waitSeconds / 60)} min.`);
+      setLoading(false);
+      return;
+    }
+
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     await storeOtp(phone, generatedOtp);
+    await recordOtpAttempt(phone);
     sendOtpSms(phone, generatedOtp);
     setResendTimer(60);
+    setBlocked(false);
     setOtp(["", "", "", "", "", ""]);
     goToStep("otp");
     setLoading(false);
@@ -141,7 +154,6 @@ export default function Login() {
           state: phone === ADMIN_PHONE ? undefined : fromCheckout ? { fromCheckout: true } : undefined,
         });
       } else {
-        // Admin phone — skip name step, use default name
         if (phone === ADMIN_PHONE) {
           await signInAnonymously(auth);
           await updateProfile(auth.currentUser!, { displayName: "Admin" });
@@ -198,20 +210,20 @@ export default function Login() {
         style={{ opacity: animating ? 0 : 1, transform: animating ? "translateY(16px)" : "translateY(0)", transition: "opacity 0.3s ease, transform 0.3s ease" }}>
         <div className="bg-card rounded-3xl shadow-cute-lg border border-border/50 p-7 space-y-6">
 
-          {/* Header */}
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-1 animate-float">
-              {step === "phone" && <Phone className="h-7 w-7 text-primary" />}
-              {step === "otp" && <Sparkles className="h-7 w-7 text-primary" />}
-              {step === "name" && <CheckCircle2 className="h-7 w-7 text-primary" />}
+              {blocked ? <ShieldAlert className="h-7 w-7 text-destructive" /> :
+                step === "phone" ? <Phone className="h-7 w-7 text-primary" /> :
+                step === "otp" ? <Sparkles className="h-7 w-7 text-primary" /> :
+                <CheckCircle2 className="h-7 w-7 text-primary" />}
             </div>
             <h1 className="font-display text-2xl font-extrabold text-foreground">
-              {step === "phone" && "Welcome 🧸"}
-              {step === "otp" && "Enter OTP ✨"}
-              {step === "name" && "Almost There 💕"}
+              {blocked ? "Too Many Attempts 🔒" :
+                step === "phone" ? "Welcome 🧸" :
+                step === "otp" ? "Enter OTP ✨" : "Almost There 💕"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {step === "phone" && (fromCheckout ? "Login to place your order" : "Login or create account")}
+              {step === "phone" && !blocked && (fromCheckout ? "Login to place your order" : "Login or create account")}
               {step === "otp" && `OTP sent to +91 ${phone}`}
               {step === "name" && "Tell us your name to get started"}
             </p>
@@ -226,13 +238,13 @@ export default function Login() {
                   <span className="text-sm font-bold text-foreground">🇮🇳 +91</span>
                   <div className="w-px h-5 bg-border" />
                   <input type="tel" inputMode="numeric" maxLength={10} value={phone}
-                    onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setError(""); }}
+                    onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setError(""); setBlocked(false); }}
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                    placeholder="Enter 10-digit number" autoFocus />
+                    placeholder="Enter 10-digit number" autoFocus disabled={blocked} />
                 </div>
               </div>
               {error && <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>}
-              <button onClick={handleSendOtp} disabled={loading || phone.length !== 10}
+              <button onClick={handleSendOtp} disabled={loading || phone.length !== 10 || blocked}
                 className="w-full py-3.5 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-cute flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:scale-100">
                 {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Sending OTP...</span>
                   : <>Send OTP <ArrowRight className="h-4 w-4" /></>}
@@ -262,7 +274,7 @@ export default function Login() {
                   : <>Verify OTP <CheckCircle2 className="h-4 w-4" /></>}
               </button>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <button onClick={() => { goToStep("phone"); setOtp(["","","","","",""]); setError(""); }}
+                <button onClick={() => { goToStep("phone"); setOtp(["","","","","",""]); setError(""); setBlocked(false); }}
                   className="flex items-center gap-1 hover:text-foreground transition-colors">
                   <RotateCcw className="h-3 w-3" /> Change number
                 </button>
@@ -291,7 +303,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step indicator */}
           <div className="flex justify-center gap-2 pt-1">
             {(["phone", "otp", "name"] as Step[]).map((s, i) => (
               <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === s ? "w-6 bg-primary" : "w-1.5 bg-border"}`} />
