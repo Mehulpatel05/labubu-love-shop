@@ -5,7 +5,6 @@ import HeroSection from "@/components/HeroSection";
 import FeaturedSection from "@/components/FeaturedSection";
 import ProductGrid from "@/components/ProductGrid";
 import ReviewsSection from "@/components/ReviewsSection";
-import NewsletterSection from "@/components/NewsletterSection";
 import AboutSection from "@/components/AboutSection";
 
 const Index = () => {
@@ -20,7 +19,6 @@ const Index = () => {
       <FeaturedSection />
       <ProductGrid />
       <ReviewsSection />
-      <NewsletterSection />
       <AboutSection />
     </>
   );
