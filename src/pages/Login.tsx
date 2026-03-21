@@ -3,11 +3,33 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { auth, db } from "@/lib/firebase";
 import { signInAnonymously, updateProfile } from "firebase/auth";
-import { ref, set, get } from "firebase/database";
-import { supabase } from "@/integrations/supabase/client";
+import { ref, set, get, remove } from "firebase/database";
 import { Phone, ArrowRight, RotateCcw, CheckCircle2, Sparkles } from "lucide-react";
 
 type Step = "phone" | "otp" | "name";
+
+const FAST2SMS_KEY = import.meta.env.VITE_FAST2SMS_KEY;
+
+async function sendOtpSms(phone: string, otp: string) {
+  if (!FAST2SMS_KEY) {
+    console.log(`[DEV] OTP for ${phone}: ${otp}`);
+    return;
+  }
+  await fetch("https://www.fast2sms.com/dev/bulkV2", {
+    method: "POST",
+    headers: {
+      authorization: FAST2SMS_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      route: "q",
+      message: `Your Labubu Store OTP is ${otp}. Valid for 2 minutes. Do not share.`,
+      language: "english",
+      flash: 0,
+      numbers: phone,
+    }),
+  });
+}
 
 export default function Login() {
   const [step, setStep] = useState<Step>("phone");
@@ -41,10 +63,7 @@ export default function Login() {
 
   const goToStep = (next: Step) => {
     setAnimating(true);
-    setTimeout(() => {
-      setStep(next);
-      setAnimating(false);
-    }, 300);
+    setTimeout(() => { setStep(next); setAnimating(false); }, 300);
   };
 
   const handleSendOtp = async () => {
@@ -52,11 +71,15 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const { error: fnError } = await supabase.functions.invoke("send-otp", {
-        body: { action: "send", phone },
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      // Store OTP in Firebase with 2 min expiry
+      await set(ref(db, `otp_store/${phone}`), {
+        otp: generatedOtp,
+        expires: Date.now() + 2 * 60 * 1000,
       });
-      if (fnError) throw fnError;
+      await sendOtpSms(phone, generatedOtp);
       setResendTimer(60);
+      setOtp(["", "", "", "", "", ""]);
       goToStep("otp");
     } catch {
       setError("Failed to send OTP. Try again.");
@@ -84,27 +107,29 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("send-otp", {
-        body: { action: "verify", phone, otp: otpValue },
-      });
-      if (fnError || !data?.success) throw new Error(data?.error || "Verification failed");
+      const snap = await get(ref(db, `otp_store/${phone}`));
+      if (!snap.exists()) throw new Error("OTP not found. Please resend.");
+      const { otp: storedOtp, expires } = snap.val();
+      if (Date.now() > expires) {
+        await remove(ref(db, `otp_store/${phone}`));
+        throw new Error("OTP expired. Please resend.");
+      }
+      if (storedOtp !== otpValue) throw new Error("Wrong OTP. Try again.");
+      await remove(ref(db, `otp_store/${phone}`));
 
-      // Check if user exists
-      const snap = await get(ref(db, `phone_users/${phone}`));
-      if (snap.exists()) {
-        // Existing user — sign in
+      // Check if returning user
+      const userSnap = await get(ref(db, `phone_users/${phone}`));
+      if (userSnap.exists()) {
         await signInAnonymously(auth);
-        const currentUser = auth.currentUser!;
-        await updateProfile(currentUser, { displayName: snap.val().name });
+        await updateProfile(auth.currentUser!, { displayName: userSnap.val().name });
         fromCheckout
           ? navigate("/checkout", { state: { fromCheckout: true } })
           : navigate("/");
       } else {
-        // New user — ask name
         goToStep("name");
       }
     } catch (err: any) {
-      setError(err.message || "Wrong OTP");
+      setError(err.message || "Verification failed");
     }
     setLoading(false);
   };
@@ -169,7 +194,6 @@ export default function Login() {
           transition: "opacity 0.3s ease, transform 0.3s ease",
         }}
       >
-        {/* Card */}
         <div className="bg-card rounded-3xl shadow-cute-lg border border-border/50 p-7 space-y-6">
 
           {/* Header */}
@@ -212,9 +236,7 @@ export default function Login() {
                 </div>
               </div>
 
-              {error && (
-                <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>
-              )}
+              {error && <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>}
 
               <button
                 onClick={handleSendOtp}
@@ -255,9 +277,7 @@ export default function Login() {
                 ))}
               </div>
 
-              {error && (
-                <p className="text-xs text-destructive font-medium text-center animate-fade-up">{error}</p>
-              )}
+              {error && <p className="text-xs text-destructive font-medium text-center animate-fade-up">{error}</p>}
 
               <button
                 onClick={handleVerifyOtp}
@@ -296,7 +316,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step: Name (new user) */}
+          {/* Step: Name (new user only) */}
           {step === "name" && (
             <div className="space-y-4 animate-fade-up">
               <div>
@@ -311,9 +331,7 @@ export default function Login() {
                 />
               </div>
 
-              {error && (
-                <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>
-              )}
+              {error && <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>}
 
               <button
                 onClick={handleCreateAccount}
