@@ -9,17 +9,30 @@ import AboutSection from "@/components/AboutSection";
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
-  const handleComplete = useCallback(() => setLoading(false), []);
+  const [visible, setVisible] = useState(false);
+
+  const handleComplete = useCallback(() => {
+    setLoading(false);
+    setTimeout(() => setVisible(true), 50);
+  }, []);
 
   return (
     <>
       {loading && <LoadingScreen onComplete={handleComplete} />}
-      <DiscountBanner />
-      <HeroSection />
-      <FeaturedSection />
-      <ProductGrid />
-      <ReviewsSection />
-      <AboutSection />
+      <div
+        className="transition-all duration-700 ease-out"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+        }}
+      >
+        <DiscountBanner />
+        <HeroSection />
+        <FeaturedSection />
+        <ProductGrid />
+        <ReviewsSection />
+        <AboutSection />
+      </div>
     </>
   );
 };

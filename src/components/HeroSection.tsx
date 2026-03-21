@@ -1,5 +1,4 @@
 import heroBanner from "@/assets/hero-banner.jpg";
-import { Link } from "react-router-dom";
 import { ShieldCheck, Truck, Star } from "lucide-react";
 
 export default function HeroSection() {
@@ -28,16 +27,16 @@ export default function HeroSection() {
           </div>
 
           <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
-            <Link
-              to="/#products"
+            <button
+              onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center px-6 py-3 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:shadow-cute-lg hover:scale-105 transition-all duration-200 text-sm min-h-[44px]">
               Shop Now 🛒
-            </Link>
-            <Link
-              to="/#products"
+            </button>
+            <button
+              onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center px-6 py-3 rounded-full border-2 border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-all duration-200 text-sm min-h-[44px]">
               View Collection
-            </Link>
+            </button>
           </div>
         </div>
 
