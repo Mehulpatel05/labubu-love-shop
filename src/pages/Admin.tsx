@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { Navigate } from "react-router-dom";
 import { db } from "@/lib/firebase";
 import { ref, get, set, remove, onValue, push } from "firebase/database";
-import { Package, RefreshCw, ChevronDown, Plus, Pencil, Trash2, X, ShoppingBag, IndianRupee, Clock, CheckCircle, Search, Download, AlertCircle } from "lucide-react";
+import { Package, RefreshCw, ChevronDown, Plus, Pencil, Trash2, X, ShoppingBag, IndianRupee, Clock, CheckCircle, Search, Download, AlertCircle, TrendingUp, Users } from "lucide-react";
 import { fetchAllProductsAdmin, type Product } from "@/lib/products";
 import { toast } from "sonner";
 
@@ -25,7 +25,7 @@ interface Order {
   created_at: string;
 }
 
-type Tab = "orders" | "products";
+type Tab = "orders" | "products" | "profit" | "users";
 
 export default function Admin() {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -46,15 +46,24 @@ export default function Admin() {
         <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground mb-4">Admin Dashboard</h1>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <button onClick={() => setTab("orders")} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${tab === "orders" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
             <Package className="h-4 w-4 inline mr-1.5" />Orders
           </button>
           <button onClick={() => setTab("products")} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${tab === "products" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
             <ShoppingBag className="h-4 w-4 inline mr-1.5" />Products
           </button>
+          <button onClick={() => setTab("profit")} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${tab === "profit" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+            <TrendingUp className="h-4 w-4 inline mr-1.5" />Profit
+          </button>
+          <button onClick={() => setTab("users")} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${tab === "users" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+            <Users className="h-4 w-4 inline mr-1.5" />Users
+          </button>
         </div>
-        {tab === "orders" ? <OrdersTab /> : <ProductsTab />}
+        {tab === "orders" && <OrdersTab />}
+        {tab === "products" && <ProductsTab />}
+        {tab === "profit" && <ProfitTab />}
+        {tab === "users" && <UsersTab />}
       </div>
     </section>
   );
@@ -412,5 +421,189 @@ function ProductForm({ product, isNew, onDone, onCancel }: { product: Product; i
         </button>
       </div>
     </div>
+  );
+}
+
+/* =================== PROFIT TAB =================== */
+function ProfitTab() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const [ordersSnap, productsSnap] = await Promise.all([
+        get(ref(db, "orders")),
+        get(ref(db, "products")),
+      ]);
+      const allOrders: Order[] = ordersSnap.exists()
+        ? Object.entries(ordersSnap.val()).map(([id, val]: [string, any]) => ({ id, ...val }))
+        : [];
+      const allProducts: Record<string, any> = productsSnap.exists() ? productsSnap.val() : {};
+      setOrders(allOrders);
+      setProducts(allProducts);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const deliveredOrders = orders.filter(o => o.status === "delivered");
+  const allOrdersRevenue = orders.reduce((s, o) => s + (o.total_price || 0), 0);
+  const deliveredRevenue = deliveredOrders.reduce((s, o) => s + (o.total_price || 0), 0);
+
+  const calcCost = (order: Order) =>
+    (order.items || []).reduce((s: number, item: any) => {
+      const p = Object.values(products).find((x: any) => x.slug === item.product?.slug) as any;
+      const cost = p?.cost_price ?? 0;
+      return s + cost * item.quantity;
+    }, 0);
+
+  const totalCost = deliveredOrders.reduce((s, o) => s + calcCost(o), 0);
+  const netProfit = deliveredRevenue - totalCost;
+  const margin = deliveredRevenue > 0 ? ((netProfit / deliveredRevenue) * 100).toFixed(1) : "0";
+
+  const perOrderRows = deliveredOrders
+    .map(o => ({ order: o, revenue: o.total_price, cost: calcCost(o), profit: o.total_price - calcCost(o) }))
+    .sort((a, b) => b.profit - a.profit);
+
+  if (loading) return <div className="text-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto" /></div>;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><IndianRupee className="h-3.5 w-3.5" /> Total Revenue</div>
+          <p className="text-2xl font-extrabold text-foreground">₹{allOrdersRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><IndianRupee className="h-3.5 w-3.5" /> Delivered Revenue</div>
+          <p className="text-2xl font-extrabold text-primary">₹{deliveredRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><TrendingUp className="h-3.5 w-3.5" /> Net Profit</div>
+          <p className={`text-2xl font-extrabold ${netProfit >= 0 ? "text-green-500" : "text-destructive"}`}>₹{netProfit.toLocaleString()}</p>
+        </div>
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><TrendingUp className="h-3.5 w-3.5" /> Margin</div>
+          <p className={`text-2xl font-extrabold ${netProfit >= 0 ? "text-green-500" : "text-destructive"}`}>{margin}%</p>
+        </div>
+      </div>
+
+      {totalCost === 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-4 text-sm text-orange-700">
+          ⚠️ Products mein <strong>cost_price</strong> set nahi hai. Profit calculate karne ke liye products mein cost price add karein.
+        </div>
+      )}
+
+      <div className="bg-card border rounded-2xl overflow-hidden">
+        <div className="p-4 border-b">
+          <p className="font-bold text-sm text-foreground">Delivered Orders — Profit Breakdown</p>
+        </div>
+        {perOrderRows.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8 text-sm">No delivered orders yet</p>
+        ) : (
+          <div className="divide-y">
+            {perOrderRows.map(({ order, revenue, cost, profit }) => (
+              <div key={order.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-foreground truncate">{order.order_number}</p>
+                  <p className="text-xs text-muted-foreground">{order.customer_name}</p>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <p className="text-xs text-muted-foreground">Rev: <span className="text-foreground font-semibold">₹{revenue}</span></p>
+                  {cost > 0 && <p className="text-xs text-muted-foreground">Cost: <span className="text-foreground font-semibold">₹{cost}</span></p>}
+                  <p className={`text-xs font-bold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>Profit: ₹{profit}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* =================== USERS TAB =================== */
+interface UserProfile {
+  uid: string;
+  phone?: string;
+  email?: string;
+  name?: string;
+  created_at?: string;
+}
+
+function UsersTab() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      const snap = await get(ref(db, "profiles"));
+      if (snap.exists()) {
+        const data = snap.val();
+        const list: UserProfile[] = Object.entries(data).map(([uid, val]: [string, any]) => ({ uid, ...val }));
+        list.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+        setUsers(list);
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const filtered = users.filter(u =>
+    !search.trim() ||
+    u.phone?.includes(search) ||
+    u.name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) return <div className="text-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto" /></div>;
+
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="bg-card border rounded-2xl px-4 py-3 flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <span className="font-extrabold text-foreground">{users.length}</span>
+          <span className="text-xs text-muted-foreground">Total Users</span>
+        </div>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by name, phone, email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12"><Users className="h-12 w-12 text-muted-foreground/30 mx-auto" /><p className="text-muted-foreground mt-3">No users found</p></div>
+      ) : (
+        <div className="bg-card border rounded-2xl overflow-hidden">
+          <div className="divide-y">
+            {filtered.map((u, i) => (
+              <div key={u.uid} className="flex items-center gap-3 px-4 py-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-foreground text-sm truncate">{u.name || "—"}</p>
+                  <p className="text-xs text-muted-foreground">{u.phone || u.email || u.uid}</p>
+                </div>
+                {u.created_at && (
+                  <p className="text-xs text-muted-foreground hidden sm:block">
+                    {new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
