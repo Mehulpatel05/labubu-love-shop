@@ -48,16 +48,16 @@ export default function ProductCard({ product }: { product: Product }) {
             <span className="text-base sm:text-lg font-extrabold text-primary">₹{product.price}</span>
             <button
               onClick={handleAddToCart}
-              className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 min-w-[80px] ${
                 added
                   ? "bg-green-500 text-white"
                   : "bg-primary text-primary-foreground hover:scale-105"
               }`}
             >
               {added ? (
-                <><Check className="h-3 w-3" /><span className="hidden xs:inline sm:inline">Added</span></>
+                <><Check className="h-3 w-3" /><span>Added</span></>
               ) : (
-                <><ShoppingCart className="h-3 w-3" /><span className="hidden sm:inline">Add to Cart</span></>
+                <><ShoppingCart className="h-3 w-3" /><span>Add</span></>
               )}
             </button>
           </div>

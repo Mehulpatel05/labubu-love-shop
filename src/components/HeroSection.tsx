@@ -16,13 +16,13 @@ export default function HeroSection() {
           <div className="flex-wrap md:justify-start flex items-center justify-center gap-[15px]">
             <Link
               to="/#products"
-              className="inline-flex items-center px-6 py-3 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:shadow-cute-lg hover:scale-105 transition-all duration-200 text-xs">
+              className="inline-flex items-center px-6 py-3 rounded-full bg-primary text-primary-foreground font-bold shadow-cute hover:shadow-cute-lg hover:scale-105 transition-all duration-200 text-sm">
               
               Shop Now
             </Link>
             <Link
               to="/#products"
-              className="inline-flex items-center px-6 py-3 rounded-full border-2 border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-all duration-200 text-xs">
+              className="inline-flex items-center px-6 py-3 rounded-full border-2 border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-all duration-200 text-sm">
               
               View Collection
             </Link>
@@ -32,7 +32,8 @@ export default function HeroSection() {
           <img
             src={heroBanner}
             alt="Labubu Cases Collection"
-            className="w-full max-w-md md:max-w-lg shadow-cute-lg animate-float object-contain rounded-2xl" />
+            className="w-full max-w-md md:max-w-lg shadow-cute-lg animate-float object-contain rounded-2xl"
+            style={{ minHeight: "200px" }} />
         </div>
       </div>
     </section>);

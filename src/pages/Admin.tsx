@@ -106,7 +106,7 @@ function OrdersTab() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-6">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
         {STATUS_OPTIONS.map((s) => {
           const count = orders.filter((o) => o.status === s).length;
           return (
