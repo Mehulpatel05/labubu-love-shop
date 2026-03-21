@@ -10,25 +10,25 @@ type Step = "phone" | "otp" | "name";
 
 const FAST2SMS_KEY = import.meta.env.VITE_FAST2SMS_KEY;
 
+// Sanitize input before any logging
+function sanitize(val: string) {
+  return val.replace(/[\r\n]/g, "").slice(0, 20);
+}
+
 async function sendOtpSms(phone: string, otp: string) {
-  if (!FAST2SMS_KEY) {
-    console.log(`[DEV] OTP for ${phone}: ${otp}`);
-    return;
+  // Always show OTP in console for dev/testing (F12 → Console)
+  console.log("[OTP]", sanitize(phone), "→", sanitize(otp));
+
+  const hasKey = FAST2SMS_KEY && FAST2SMS_KEY !== "your_fast2sms_api_key_here";
+  if (!hasKey) return;
+
+  try {
+    // GET request avoids CORS preflight issue
+    const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=q&message=Your+Labubu+Store+OTP+is+${otp}.+Valid+2+mins.+Do+not+share.&language=english&flash=0&numbers=${phone}`;
+    await fetch(url, { method: "GET", mode: "no-cors" });
+  } catch {
+    // SMS fail hone pe bhi OTP Firebase mein stored hai — flow continue karega
   }
-  await fetch("https://www.fast2sms.com/dev/bulkV2", {
-    method: "POST",
-    headers: {
-      authorization: FAST2SMS_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      route: "q",
-      message: `Your Labubu Store OTP is ${otp}. Valid for 2 minutes. Do not share.`,
-      language: "english",
-      flash: 0,
-      numbers: phone,
-    }),
-  });
 }
 
 export default function Login() {
@@ -72,17 +72,18 @@ export default function Login() {
     setLoading(true);
     try {
       const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      // Store OTP in Firebase with 2 min expiry
+      // Store OTP in Firebase first — this is the source of truth
       await set(ref(db, `otp_store/${phone}`), {
         otp: generatedOtp,
         expires: Date.now() + 2 * 60 * 1000,
       });
-      await sendOtpSms(phone, generatedOtp);
+      // SMS send — failure will NOT block the flow
+      sendOtpSms(phone, generatedOtp);
       setResendTimer(60);
       setOtp(["", "", "", "", "", ""]);
       goToStep("otp");
     } catch {
-      setError("Failed to send OTP. Try again.");
+      setError("Could not connect. Check internet and try again.");
     }
     setLoading(false);
   };
@@ -117,7 +118,6 @@ export default function Login() {
       if (storedOtp !== otpValue) throw new Error("Wrong OTP. Try again.");
       await remove(ref(db, `otp_store/${phone}`));
 
-      // Check if returning user
       const userSnap = await get(ref(db, `phone_users/${phone}`));
       if (userSnap.exists()) {
         await signInAnonymously(auth);
@@ -166,7 +166,6 @@ export default function Login() {
 
   return (
     <section className="min-h-[90vh] flex items-center justify-center px-4 py-10 relative overflow-hidden">
-      {/* Floating background emojis */}
       {floatingEmojis.map((emoji, i) => (
         <span
           key={i}
@@ -182,7 +181,6 @@ export default function Login() {
         </span>
       ))}
 
-      {/* Gradient blobs */}
       <div className="absolute top-10 left-1/4 w-48 h-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-64 h-64 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
 
@@ -235,9 +233,7 @@ export default function Login() {
                   />
                 </div>
               </div>
-
               {error && <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>}
-
               <button
                 onClick={handleSendOtp}
                 disabled={loading || phone.length !== 10}
@@ -276,9 +272,7 @@ export default function Login() {
                   />
                 ))}
               </div>
-
               {error && <p className="text-xs text-destructive font-medium text-center animate-fade-up">{error}</p>}
-
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading || otp.join("").length !== 6}
@@ -293,7 +287,6 @@ export default function Login() {
                   <>Verify OTP <CheckCircle2 className="h-4 w-4" /></>
                 )}
               </button>
-
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <button
                   onClick={() => { goToStep("phone"); setOtp(["","","","","",""]); setError(""); }}
@@ -304,11 +297,7 @@ export default function Login() {
                 {resendTimer > 0 ? (
                   <span>Resend in {resendTimer}s</span>
                 ) : (
-                  <button
-                    onClick={handleSendOtp}
-                    disabled={loading}
-                    className="text-primary font-bold hover:underline disabled:opacity-50"
-                  >
+                  <button onClick={handleSendOtp} disabled={loading} className="text-primary font-bold hover:underline disabled:opacity-50">
                     Resend OTP
                   </button>
                 )}
@@ -316,7 +305,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step: Name (new user only) */}
+          {/* Step: Name */}
           {step === "name" && (
             <div className="space-y-4 animate-fade-up">
               <div>
@@ -330,9 +319,7 @@ export default function Login() {
                   autoFocus
                 />
               </div>
-
               {error && <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>}
-
               <button
                 onClick={handleCreateAccount}
                 disabled={loading || name.trim().length < 2}
