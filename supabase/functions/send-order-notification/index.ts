@@ -36,7 +36,8 @@ ${itemsList}
     
     // Note: For production, you'd use official WhatsApp Business API
     // For now, we'll log the message and try callmebot
-    console.log("Order notification:", message);
+    const safeMsg = message.replace(/[\r\n]/g, ' ');
+    console.log("Order notification:", safeMsg);
 
     // Send email notification using a simple approach
     const emailTo = "swatmehul@gmail.com";

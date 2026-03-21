@@ -23,7 +23,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-card/90 backdrop-blur-lg">
-      <div className="container flex h-14 sm:h-16 items-center justify-between">
+      <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
         <Link to="/" className="font-display text-lg sm:text-xl font-extrabold text-primary">
           🧸 Labubu Store
         </Link>

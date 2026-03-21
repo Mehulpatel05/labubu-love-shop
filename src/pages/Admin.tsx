@@ -318,7 +318,7 @@ function ProductForm({ product, isNew, onDone, onCancel }: { product: Product; i
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground mb-1 block">Image URL</label>
           <input className={inputClass} value={form.image_url} onChange={(e) => update("image_url", e.target.value)} placeholder="/products/image.png" />
-          {form.image_url && <img src={form.image_url} alt="Preview" className="w-20 h-20 object-contain bg-cream rounded-xl mt-2" />}
+          {form.image_url && /^https?:\/\//.test(form.image_url) && <img src={form.image_url} alt="Preview" className="w-20 h-20 object-contain bg-cream rounded-xl mt-2" />}
         </div>
       </div>
 

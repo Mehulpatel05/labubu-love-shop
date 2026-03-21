@@ -36,7 +36,8 @@ serve(async (req) => {
       console.log("Fast2SMS response:", data);
     } else {
       // Dev mode — log OTP
-      console.log(`[DEV] OTP for ${phone}: ${generatedOtp}`);
+      const safePhone = phone.replace(/[\r\n\t]/g, '');
+      console.log(`[DEV] OTP for ${safePhone}: ${generatedOtp}`);
     }
 
     return new Response(JSON.stringify({ success: true }), {
