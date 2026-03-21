@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
@@ -13,10 +13,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
-  console.error('Firebase env vars missing! Add VITE_FIREBASE_* to Vercel Environment Variables.');
-}
-
-const app = initializeApp(firebaseConfig);
+// Prevent duplicate app init (hot reload safe)
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = getAuth(app);

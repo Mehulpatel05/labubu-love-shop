@@ -3,8 +3,9 @@ import { useAuth } from "@/lib/auth";
 import { Navigate } from "react-router-dom";
 import { db } from "@/lib/firebase";
 import { ref, get, set, remove, onValue, push } from "firebase/database";
-import { Package, RefreshCw, ChevronDown, Plus, Pencil, Trash2, X, ShoppingBag } from "lucide-react";
+import { Package, RefreshCw, ChevronDown, Plus, Pencil, Trash2, X, ShoppingBag, IndianRupee, Clock, CheckCircle, Search, Download, AlertCircle } from "lucide-react";
 import { fetchAllProductsAdmin, type Product } from "@/lib/products";
+import { toast } from "sonner";
 
 const STATUS_OPTIONS = ["confirmed", "processing", "shipped", "out_for_delivery", "delivered"] as const;
 type OrderStatus = typeof STATUS_OPTIONS[number];
@@ -53,7 +54,6 @@ export default function Admin() {
             <ShoppingBag className="h-4 w-4 inline mr-1.5" />Products
           </button>
         </div>
-
         {tab === "orders" ? <OrdersTab /> : <ProductsTab />}
       </div>
     </section>
@@ -69,15 +69,22 @@ function OrdersTab() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    const snapshot = await get(ref(db, "orders"));
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const allOrders = Object.entries(data)
-        .map(([id, val]: [string, any]) => ({ id, ...val }))
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setOrders(allOrders as Order[]);
+    try {
+      const snapshot = await get(ref(db, "orders"));
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const allOrders = Object.entries(data)
+          .map(([id, val]: [string, any]) => ({ id, ...val }))
+          .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setOrders(allOrders as Order[]);
+      } else {
+        setOrders([]);
+      }
+    } catch {
+      toast.error("Failed to load orders. Check your connection.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => { fetchOrders(); }, []);
@@ -90,18 +97,88 @@ function OrdersTab() {
 
   const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingId(orderId);
-    await set(ref(db, `orders/${orderId}/status`), newStatus);
-    setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o));
-    setUpdatingId(null);
+    try {
+      await set(ref(db, `orders/${orderId}/status`), newStatus);
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o));
+      toast.success("Status updated");
+    } catch {
+      toast.error("Failed to update status.");
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const [search, setSearch] = useState("");
+
+  const filtered = orders
+    .filter((o) => filter === "all" || o.status === filter)
+    .filter((o) => !search.trim() ||
+      o.order_number?.toLowerCase().includes(search.toLowerCase()) ||
+      o.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+      o.customer_phone?.includes(search)
+    );
+
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.total_price || 0), 0);
+  const pendingCount = orders.filter(o => o.status === "confirmed" || o.status === "processing").length;
+  const deliveredCount = orders.filter(o => o.status === "delivered").length;
+
+  const exportCSV = () => {
+    if (orders.length === 0) return;
+    const escape = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [
+      ["Order", "Customer", "Phone", "City", "State", "Total", "Status", "Date"].map(escape),
+      ...orders.map(o => [
+        o.order_number, o.customer_name, o.customer_phone,
+        o.customer_city, o.customer_state, `₹${o.total_price}`,
+        o.status, new Date(o.created_at).toLocaleDateString("en-IN")
+      ].map(escape))
+    ];
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `orders-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">{orders.length} total orders</p>
-        <button onClick={fetchOrders} className="p-2 rounded-full hover:bg-muted transition-colors">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><Package className="h-3.5 w-3.5" /> Total Orders</div>
+          <p className="text-2xl font-extrabold text-foreground">{orders.length}</p>
+        </div>
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><IndianRupee className="h-3.5 w-3.5" /> Revenue</div>
+          <p className="text-2xl font-extrabold text-primary">₹{totalRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><Clock className="h-3.5 w-3.5" /> Pending</div>
+          <p className="text-2xl font-extrabold text-orange-500">{pendingCount}</p>
+        </div>
+        <div className="bg-card border rounded-2xl p-3 sm:p-4 space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs"><CheckCircle className="h-3.5 w-3.5" /> Delivered</div>
+          <p className="text-2xl font-extrabold text-green-500">{deliveredCount}</p>
+        </div>
+      </div>
+      {/* Search + Actions */}
+      <div className="flex gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by name, phone, order#..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-card text-sm font-bold hover:bg-muted transition-colors" title="Export CSV">
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Export</span>
+        </button>
+        <button onClick={fetchOrders} className="p-2 rounded-xl border border-border hover:bg-muted transition-colors">
           <RefreshCw className={`h-4 w-4 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
@@ -271,9 +348,11 @@ function ProductForm({ product, isNew, onDone, onCancel }: { product: Product; i
       } else {
         await set(ref(db, `products/${product.id}`), { ...productData, id: product.id });
       }
+      toast.success(isNew ? "Product added!" : "Product updated!");
       onDone();
     } catch (err: any) {
       setError(err.message);
+      toast.error("Failed to save product.");
     }
     setSaving(false);
   };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import mascotImg from "@/assets/labubu-earphone-case.png";
+import mascotImg from "@/assets/labubu-earphone-case.webp";
 
 export default function LoadingScreen({ onComplete }: { onComplete: () => void }) {
   const [fadeOut, setFadeOut] = useState(false);
