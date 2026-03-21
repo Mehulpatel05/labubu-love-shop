@@ -13,6 +13,10 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
+if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
+  console.error('Firebase env vars missing! Add VITE_FIREBASE_* to Vercel Environment Variables.');
+}
+
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = getAuth(app);

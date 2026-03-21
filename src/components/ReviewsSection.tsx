@@ -101,13 +101,13 @@ export default function ReviewsSection() {
         )}
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full">
             {[...Array(4)].map((_, i) => <div key={i} className="bg-card p-6 rounded-2xl border animate-pulse h-36" />)}
           </div>
         ) : reviews.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No reviews yet. Be the first to review!</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full">
             {reviews.map((review) => (
               <div key={review.id} className="bg-card p-6 rounded-2xl shadow-sm border">
                 <div className="flex gap-1 mb-3">
