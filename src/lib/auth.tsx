@@ -3,6 +3,8 @@ import { auth, db } from "./firebase";
 import { onAuthStateChanged, signOut as firebaseSignOut, User } from "firebase/auth";
 import { ref, get } from "firebase/database";
 
+const ADMIN_PHONE = "8306590731";
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -18,8 +20,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const checkAdmin = async (userId: string) => {
-    const snapshot = await get(ref(db, `user_roles/${userId}`));
-    setIsAdmin(snapshot.exists() && snapshot.val().role === "admin");
+    try {
+      // Check by phone number in phone_users
+      const snap = await get(ref(db, `profiles/${userId}`));
+      if (snap.exists() && snap.val().phone === ADMIN_PHONE) {
+        setIsAdmin(true);
+        return;
+      }
+      // Fallback: check user_roles
+      const roleSnap = await get(ref(db, `user_roles/${userId}`));
+      setIsAdmin(roleSnap.exists() && roleSnap.val().role === "admin");
+    } catch {
+      setIsAdmin(false);
+    }
   };
 
   useEffect(() => {
@@ -32,7 +45,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 

@@ -9,6 +9,7 @@ import { Phone, ArrowRight, RotateCcw, CheckCircle2, Sparkles } from "lucide-rea
 type Step = "phone" | "otp" | "name";
 
 const FAST2SMS_KEY = import.meta.env.VITE_FAST2SMS_KEY;
+const ADMIN_PHONE = "8306590731";
 
 function sanitize(val: string) {
   return val.replace(/[\r\n]/g, "").slice(0, 20);
@@ -21,51 +22,43 @@ async function sendOtpSms(phone: string, otp: string) {
   try {
     const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=q&message=Your+Labubu+Store+OTP+is+${otp}.+Valid+2+mins.&language=english&flash=0&numbers=${phone}`;
     await fetch(url, { method: "GET", mode: "no-cors" });
-  } catch {
-    // silent
-  }
+  } catch { /* silent */ }
 }
 
-// OTP store — tries Firebase first, falls back to sessionStorage
 async function storeOtp(phone: string, otp: string) {
   const data = { otp, expires: Date.now() + 2 * 60 * 1000 };
   try {
     await set(ref(db, `otp_store/${phone}`), data);
-  } catch (e) {
-    console.warn("[OTP] Firebase write failed, using sessionStorage:", e);
+  } catch {
     sessionStorage.setItem(`otp_${phone}`, JSON.stringify(data));
   }
 }
 
 async function verifyOtp(phone: string, inputOtp: string): Promise<void> {
-  // Try Firebase first
   try {
     const snap = await get(ref(db, `otp_store/${phone}`));
     if (snap.exists()) {
       const { otp, expires } = snap.val();
-      if (Date.now() > expires) {
-        await remove(ref(db, `otp_store/${phone}`));
-        throw new Error("OTP expired. Please resend.");
-      }
+      if (Date.now() > expires) { await remove(ref(db, `otp_store/${phone}`)); throw new Error("OTP expired. Please resend."); }
       if (otp !== inputOtp) throw new Error("Wrong OTP. Try again.");
       await remove(ref(db, `otp_store/${phone}`));
       return;
     }
   } catch (e: any) {
-    // If it's a business logic error, rethrow
     if (e.message === "OTP expired. Please resend." || e.message === "Wrong OTP. Try again.") throw e;
   }
-
-  // Fallback: sessionStorage
   const raw = sessionStorage.getItem(`otp_${phone}`);
   if (!raw) throw new Error("OTP not found. Please resend.");
   const { otp, expires } = JSON.parse(raw);
-  if (Date.now() > expires) {
-    sessionStorage.removeItem(`otp_${phone}`);
-    throw new Error("OTP expired. Please resend.");
-  }
+  if (Date.now() > expires) { sessionStorage.removeItem(`otp_${phone}`); throw new Error("OTP expired. Please resend."); }
   if (otp !== inputOtp) throw new Error("Wrong OTP. Try again.");
   sessionStorage.removeItem(`otp_${phone}`);
+}
+
+function getRedirect(phone: string, fromCheckout: boolean) {
+  if (phone === ADMIN_PHONE) return "/admin";
+  if (fromCheckout) return "/checkout";
+  return "/";
 }
 
 export default function Login() {
@@ -109,7 +102,7 @@ export default function Login() {
     setLoading(true);
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     await storeOtp(phone, generatedOtp);
-    sendOtpSms(phone, generatedOtp); // no await — never blocks
+    sendOtpSms(phone, generatedOtp);
     setResendTimer(60);
     setOtp(["", "", "", "", "", ""]);
     goToStep("otp");
@@ -125,9 +118,7 @@ export default function Login() {
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
+    if (e.key === "Backspace" && !otp[index] && index > 0) otpRefs.current[index - 1]?.focus();
   };
 
   const handleVerifyOtp = async () => {
@@ -137,22 +128,31 @@ export default function Login() {
     setLoading(true);
     try {
       await verifyOtp(phone, otpValue);
-
-      // Check returning user — try Firebase, fallback gracefully
       let existingName = "";
       try {
         const userSnap = await get(ref(db, `phone_users/${phone}`));
         if (userSnap.exists()) existingName = userSnap.val().name;
-      } catch {
-        // DB read failed — treat as new user
-      }
+      } catch { /* treat as new user */ }
 
       if (existingName) {
         await signInAnonymously(auth);
         await updateProfile(auth.currentUser!, { displayName: existingName });
-        fromCheckout ? navigate("/checkout", { state: { fromCheckout: true } }) : navigate("/");
+        navigate(getRedirect(phone, fromCheckout), {
+          state: phone === ADMIN_PHONE ? undefined : fromCheckout ? { fromCheckout: true } : undefined,
+        });
       } else {
-        goToStep("name");
+        // Admin phone — skip name step, use default name
+        if (phone === ADMIN_PHONE) {
+          await signInAnonymously(auth);
+          await updateProfile(auth.currentUser!, { displayName: "Admin" });
+          try {
+            await set(ref(db, `phone_users/${phone}`), { name: "Admin", phone, uid: auth.currentUser!.uid, created_at: new Date().toISOString() });
+            await set(ref(db, `profiles/${auth.currentUser!.uid}`), { full_name: "Admin", phone, created_at: new Date().toISOString() });
+          } catch { /* silent */ }
+          navigate("/admin");
+        } else {
+          goToStep("name");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Verification failed");
@@ -169,18 +169,12 @@ export default function Login() {
       const currentUser = auth.currentUser!;
       await updateProfile(currentUser, { displayName: name.trim() });
       try {
-        await set(ref(db, `phone_users/${phone}`), {
-          name: name.trim(), phone, uid: currentUser.uid,
-          created_at: new Date().toISOString(),
-        });
-        await set(ref(db, `profiles/${currentUser.uid}`), {
-          full_name: name.trim(), phone,
-          created_at: new Date().toISOString(),
-        });
-      } catch {
-        // DB write failed — user is still signed in, continue
-      }
-      fromCheckout ? navigate("/checkout", { state: { fromCheckout: true } }) : navigate("/");
+        await set(ref(db, `phone_users/${phone}`), { name: name.trim(), phone, uid: currentUser.uid, created_at: new Date().toISOString() });
+        await set(ref(db, `profiles/${currentUser.uid}`), { full_name: name.trim(), phone, created_at: new Date().toISOString() });
+      } catch { /* silent */ }
+      navigate(getRedirect(phone, fromCheckout), {
+        state: fromCheckout && phone !== ADMIN_PHONE ? { fromCheckout: true } : undefined,
+      });
     } catch {
       setError("Something went wrong. Try again.");
     }
@@ -193,21 +187,15 @@ export default function Login() {
     <section className="min-h-[90vh] flex items-center justify-center px-4 py-10 relative overflow-hidden">
       {floatingEmojis.map((emoji, i) => (
         <span key={i} className="absolute text-2xl select-none pointer-events-none opacity-20"
-          style={{
-            left: `${10 + i * 20}%`, top: `${15 + (i % 3) * 25}%`,
-            animation: `float ${3 + i * 0.5}s ease-in-out infinite`,
-            animationDelay: `${i * 0.4}s`,
-          }}>{emoji}</span>
+          style={{ left: `${10 + i * 20}%`, top: `${15 + (i % 3) * 25}%`, animation: `float ${3 + i * 0.5}s ease-in-out infinite`, animationDelay: `${i * 0.4}s` }}>
+          {emoji}
+        </span>
       ))}
       <div className="absolute top-10 left-1/4 w-48 h-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-64 h-64 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-sm relative z-10"
-        style={{
-          opacity: animating ? 0 : 1,
-          transform: animating ? "translateY(16px)" : "translateY(0)",
-          transition: "opacity 0.3s ease, transform 0.3s ease",
-        }}>
+        style={{ opacity: animating ? 0 : 1, transform: animating ? "translateY(16px)" : "translateY(0)", transition: "opacity 0.3s ease, transform 0.3s ease" }}>
         <div className="bg-card rounded-3xl shadow-cute-lg border border-border/50 p-7 space-y-6">
 
           {/* Header */}
@@ -237,23 +225,17 @@ export default function Login() {
                 <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-border bg-muted/30 focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary/50 transition-all">
                   <span className="text-sm font-bold text-foreground">🇮🇳 +91</span>
                   <div className="w-px h-5 bg-border" />
-                  <input
-                    type="tel" inputMode="numeric" maxLength={10} value={phone}
+                  <input type="tel" inputMode="numeric" maxLength={10} value={phone}
                     onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setError(""); }}
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                    placeholder="Enter 10-digit number" autoFocus
-                  />
+                    placeholder="Enter 10-digit number" autoFocus />
                 </div>
               </div>
               {error && <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>}
               <button onClick={handleSendOtp} disabled={loading || phone.length !== 10}
                 className="w-full py-3.5 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-cute flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:scale-100">
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Sending OTP...
-                  </span>
-                ) : <>Send OTP <ArrowRight className="h-4 w-4" /></>}
+                {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Sending OTP...</span>
+                  : <>Send OTP <ArrowRight className="h-4 w-4" /></>}
               </button>
             </div>
           )}
@@ -270,19 +252,14 @@ export default function Login() {
                     className={`w-11 h-12 text-center text-lg font-bold rounded-2xl border-2 bg-muted/30 text-foreground focus:outline-none transition-all
                       ${digit ? "border-primary bg-primary/10 scale-105" : "border-border"}
                       focus:border-primary focus:ring-2 focus:ring-primary/30`}
-                    autoFocus={i === 0}
-                  />
+                    autoFocus={i === 0} />
                 ))}
               </div>
               {error && <p className="text-xs text-destructive font-medium text-center animate-fade-up">{error}</p>}
               <button onClick={handleVerifyOtp} disabled={loading || otp.join("").length !== 6}
                 className="w-full py-3.5 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-cute flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:scale-100">
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Verifying...
-                  </span>
-                ) : <>Verify OTP <CheckCircle2 className="h-4 w-4" /></>}
+                {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Verifying...</span>
+                  : <>Verify OTP <CheckCircle2 className="h-4 w-4" /></>}
               </button>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <button onClick={() => { goToStep("phone"); setOtp(["","","","","",""]); setError(""); }}
@@ -290,9 +267,7 @@ export default function Login() {
                   <RotateCcw className="h-3 w-3" /> Change number
                 </button>
                 {resendTimer > 0 ? <span>Resend in {resendTimer}s</span> : (
-                  <button onClick={handleSendOtp} disabled={loading} className="text-primary font-bold hover:underline disabled:opacity-50">
-                    Resend OTP
-                  </button>
+                  <button onClick={handleSendOtp} disabled={loading} className="text-primary font-bold hover:underline disabled:opacity-50">Resend OTP</button>
                 )}
               </div>
             </div>
@@ -303,21 +278,15 @@ export default function Login() {
             <div className="space-y-4 animate-fade-up">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Your Name</label>
-                <input type="text" value={name}
-                  onChange={(e) => { setName(e.target.value); setError(""); }}
+                <input type="text" value={name} onChange={(e) => { setName(e.target.value); setError(""); }}
                   className="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all"
-                  placeholder="Enter your full name" autoFocus
-                />
+                  placeholder="Enter your full name" autoFocus />
               </div>
               {error && <p className="text-xs text-destructive font-medium animate-fade-up">{error}</p>}
               <button onClick={handleCreateAccount} disabled={loading || name.trim().length < 2}
                 className="w-full py-3.5 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-cute flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:scale-100">
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Creating Account...
-                  </span>
-                ) : <>Start Shopping 🛍️</>}
+                {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Creating Account...</span>
+                  : <>Start Shopping 🛍️</>}
               </button>
             </div>
           )}
