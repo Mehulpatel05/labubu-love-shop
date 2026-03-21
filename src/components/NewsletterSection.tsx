@@ -25,7 +25,7 @@ export default function NewsletterSection() {
           Get exclusive offers, new product updates, and cute surprises in your inbox!
         </p>
         
-        <form onSubmit={handleSubmit} className="flex gap-3 max-w-md mx-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto px-4 sm:px-0">
           <input
             type="email"
             placeholder="Enter your email"

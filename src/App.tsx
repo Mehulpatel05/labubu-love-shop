@@ -44,7 +44,7 @@ const App = () => (
               <Navbar />
               <CartSidebar />
               <WhatsAppButton />
-              <main className="min-h-screen">
+              <main className="min-h-screen overflow-x-hidden w-full">
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/product/:id" element={<ProductDetail />} />
